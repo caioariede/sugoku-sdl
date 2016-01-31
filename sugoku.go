@@ -204,16 +204,20 @@ func clickButton(ctx *Ctx, x int32, y int32) {
 func handleKey(ctx *Ctx, key sdl.Keysym) {
 	if key.Sym == 8 || (key.Sym >= 49 && key.Sym <= 57) {
 		i := 0
+
 		for i < 81 {
-			ctx.board[i].mark = false
-			if key.Sym == 8 {
-				ctx.board[i].val = 0
-			} else if ctx.board[i].mark {
-				ctx.board[i].val = int(key.Sym) - 48
+			if ctx.board[i].mark {
+				if key.Sym == 8 {
+					ctx.board[i].val = 0
+				} else {
+					ctx.board[i].val = int(key.Sym) - 48
+				}
 				break
 			}
+
 			i += 1
 		}
+
 	} else if key.Scancode == sdl.SCANCODE_DOWN ||
 		key.Scancode == sdl.SCANCODE_UP ||
 		key.Scancode == sdl.SCANCODE_LEFT ||
