@@ -55,7 +55,7 @@ func run() int {
 					clickButton(&ctx, t.X, t.Y)
 				}
 			case *sdl.KeyDownEvent:
-				handleKey(&ctx, t.Keysym.Sym)
+				handleKey(&ctx, t.Keysym)
 			}
 		}
 	}
@@ -201,19 +201,72 @@ func clickButton(ctx *Ctx, x int32, y int32) {
 	drawBoard(ctx)
 }
 
-func handleKey(ctx *Ctx, key sdl.Keycode) {
-	i := 0
-	for i < 81 {
-		if ctx.board[i].mark {
-			if key >= 49 && key <= 57 {
-				ctx.board[i].val = int(key) - 48
-			} else if key == 8 {
+func handleKey(ctx *Ctx, key sdl.Keysym) {
+	if key.Sym == 8 || (key.Sym >= 49 && key.Sym <= 57) {
+		i := 0
+		for i < 81 {
+			ctx.board[i].mark = false
+			if key.Sym == 8 {
 				ctx.board[i].val = 0
+			} else if ctx.board[i].mark {
+				ctx.board[i].val = int(key.Sym) - 48
+				break
+			}
+			i += 1
+		}
+	} else if key.Scancode == sdl.SCANCODE_DOWN ||
+		key.Scancode == sdl.SCANCODE_UP ||
+		key.Scancode == sdl.SCANCODE_LEFT ||
+		key.Scancode == sdl.SCANCODE_RIGHT {
+
+		i := 0
+		found := -1
+
+		for i < 81 {
+			if ctx.board[i].mark {
+				found = i
+				break
+			}
+			i += 1
+		}
+
+		if found > -1 {
+			mark := found
+
+			if key.Scancode == sdl.SCANCODE_DOWN {
+				mark += 9
+
+				if mark > 80 {
+					mark = found % 9
+				}
+
+			} else if key.Scancode == sdl.SCANCODE_RIGHT {
+				mark += 1
+
+				if mark%9 == 0 {
+					mark -= 9
+				}
+
+			} else if key.Scancode == sdl.SCANCODE_UP {
+				mark -= 9
+
+				if mark < 0 {
+					mark = (80 - 9) + ((found % 9) + 1)
+				}
+			} else if key.Scancode == sdl.SCANCODE_LEFT {
+				mark -= 1
+
+				if mark%9 == 8 {
+					mark += 9
+				}
 			}
 
 			ctx.board[i].mark = false
+			ctx.board[mark].mark = true
+
+		} else {
+			ctx.board[0].mark = true
 		}
-		i += 1
 	}
 
 	drawBoard(ctx)
