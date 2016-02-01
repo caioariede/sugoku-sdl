@@ -4,8 +4,10 @@ import (
 	"fmt"
 	sdl "github.com/veandco/go-sdl2/sdl"
 	ttf "github.com/veandco/go-sdl2/sdl_ttf"
+	"math/rand"
 	"os"
 	"strconv"
+	"time"
 )
 
 type Cell struct {
@@ -113,6 +115,15 @@ func initBoard(size int32, startX int32, startY int32, gap int32) Board {
 	var board Board
 
 	i := 0
+	initNums := make(map[int]bool, 20)
+
+	// seed rand
+	src := rand.NewSource(time.Now().UnixNano())
+	rnd := rand.New(src)
+
+	for _, v := range rnd.Perm(81)[:20] {
+		initNums[v] = true
+	}
 
 	for y := int32(0); y < 9; y++ {
 		sx := startX
@@ -121,7 +132,13 @@ func initBoard(size int32, startX int32, startY int32, gap int32) Board {
 			nx := (x * size) + sx
 			ny := (y * size) + startY
 
-			board[i] = Cell{nx, ny, size, 0, false}
+			val := 0
+
+			if _, ok := initNums[i]; ok {
+				val = randomValueForLine(&board, i)
+			}
+
+			board[i] = Cell{nx, ny, size, val, false}
 
 			sx += gap
 			i += 1
@@ -274,6 +291,68 @@ func handleKey(ctx *Ctx, key sdl.Keysym) {
 	}
 
 	drawBoard(ctx)
+}
+
+func randomValueForLine(board *Board, pos int) int {
+	var numbers [9]bool
+	var i int
+
+	number := -1
+
+	// get numbers from x and y
+	x := pos - (pos % 9)
+	y := pos % 9
+
+	i = 0
+	for i < 9 {
+		xv := board[x+i].val
+		yv := board[y+(i*9)].val
+
+		if xv > 0 {
+			xv -= 1
+			numbers[xv] = true
+		}
+
+		if yv > 0 {
+			yv -= 1
+			numbers[yv] = true
+		}
+
+		i += 1
+	}
+
+	// get numbers from the square
+	sx := (pos / 9) / 3
+	sy := (pos % 9) / 3
+
+	a := 0
+	for a < 3 {
+		b := 0
+		for b < 3 {
+			p := (((sx * 3) + a) * 9) + ((sy * 3) + b)
+			bp := board[p]
+			if bp.val > 0 {
+				numbers[bp.val-1] = true
+			}
+			b += 1
+		}
+		a += 1
+	}
+
+	// pick one unused random number
+	src := rand.NewSource(time.Now().UnixNano())
+	rnd := rand.New(src)
+
+	i = 0
+	for i < 9 {
+		j := rnd.Intn(9)
+		if !numbers[j] {
+			number = j + 1
+		}
+		i += 1
+	}
+
+	return number
 }
 
 func close(ctx *Ctx) {
