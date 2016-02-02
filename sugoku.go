@@ -37,7 +37,10 @@ func run() int {
 	startX := int32(20)
 	startY := int32(20)
 
-	winSize := int((cellSize + cellPadding) * 10)
+	winSize := int(
+		((cellSize + cellPadding) * 10) +
+			(cellPadding * 2), // extra padding separating squares
+	)
 
 	window := createWindow("Sugoku", winSize, winSize)
 	renderer := createRenderer(window)
@@ -141,10 +144,19 @@ func initBoard(size int32, startX int32, startY int32, gap int32) Board {
 			board[i] = Cell{nx, ny, size, val, false}
 
 			sx += gap
+
+			if (x+1)%3 == 0 {
+				sx += gap
+			}
+
 			i += 1
 		}
 
 		startY += gap
+
+		if (y+1)%3 == 0 {
+			startY += gap
+		}
 	}
 
 	return board
@@ -277,7 +289,7 @@ func handleKey(ctx *Ctx, key sdl.Keysym) {
 			} else if key.Scancode == sdl.SCANCODE_LEFT {
 				mark -= 1
 
-				if mark%9 == 8 {
+				if mark < 0 || mark%9 == 8 {
 					mark += 9
 				}
 			}
