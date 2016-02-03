@@ -11,11 +11,12 @@ import (
 )
 
 type Cell struct {
-	x    int32
-	y    int32
-	size int32
-	val  int
-	mark bool
+	x     int32
+	y     int32
+	size  int32
+	val   int
+	mark  bool
+	fixed bool
 }
 
 type Board [81]Cell
@@ -135,13 +136,12 @@ func initBoard(size int32, startX int32, startY int32, gap int32) Board {
 			nx := (x * size) + sx
 			ny := (y * size) + startY
 
-			val := 0
-
 			if _, ok := initNums[i]; ok {
-				val = randomValueForLine(&board, i)
+				val := randomValueForLine(&board, i)
+				board[i] = Cell{nx, ny, size, val, false, true}
+			} else {
+				board[i] = Cell{nx, ny, size, 0, false, false}
 			}
-
-			board[i] = Cell{nx, ny, size, val, false}
 
 			sx += gap
 
@@ -184,6 +184,11 @@ func drawBoard(ctx *Ctx) {
 
 		if cell.mark {
 			ctx.renderer.SetDrawColor(80, 80, 80, 0)
+		} else if cell.fixed {
+			ctx.renderer.SetDrawColor(40, 40, 40, 0)
+		}
+
+		if cell.mark || cell.fixed {
 			ctx.renderer.FillRect(&rect)
 		}
 
@@ -236,10 +241,12 @@ func handleKey(ctx *Ctx, key sdl.Keysym) {
 
 		for i < 81 {
 			if ctx.board[i].mark {
-				if key.Sym == 8 {
-					ctx.board[i].val = 0
-				} else {
-					ctx.board[i].val = int(key.Sym) - 48
+				if !ctx.board[i].fixed {
+					if key.Sym == 8 {
+						ctx.board[i].val = 0
+					} else {
+						ctx.board[i].val = int(key.Sym) - 48
+					}
 				}
 				break
 			}
