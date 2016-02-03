@@ -193,11 +193,18 @@ func drawBoard(ctx *Ctx) {
 		}
 
 		text := " "
+		color := sdl.Color{255, 255, 255, 0}
+
 		if cell.val != 0 {
 			text = strconv.Itoa(cell.val)
+
+			if !cell.fixed {
+				if isConflictingNumber(ctx.board, i, cell.val) {
+					color = sdl.Color{255, 0, 0, 0}
+				}
+			}
 		}
 
-		color := sdl.Color{255, 255, 255, 255}
 		textSurface, err := ctx.font.RenderUTF8_Solid(text, color)
 		if err != nil {
 			panic(err)
@@ -312,29 +319,29 @@ func handleKey(ctx *Ctx, key sdl.Keysym) {
 	drawBoard(ctx)
 }
 
-func randomValueForLine(board *Board, pos int) int {
+func getConflictingNumbers(board *Board, pos int) [9]bool {
 	var numbers [9]bool
-	var i int
-
-	number := -1
 
 	// get numbers from x and y
 	x := pos - (pos % 9)
 	y := pos % 9
 
-	i = 0
+	i := 0
 	for i < 9 {
-		xv := board[x+i].val
-		yv := board[y+(i*9)].val
+		xp := x + 1
+		yp := y + (i * 9)
+
+		xv := board[xp].val
+		yv := board[yp].val
 
 		if xv > 0 {
 			xv -= 1
-			numbers[xv] = true
+			numbers[xv] = numbers[xv] || xp != pos
 		}
 
 		if yv > 0 {
 			yv -= 1
-			numbers[yv] = true
+			numbers[yv] = numbers[yv] || yp != pos
 		}
 
 		i += 1
@@ -351,18 +358,32 @@ func randomValueForLine(board *Board, pos int) int {
 			p := (((sx * 3) + a) * 9) + ((sy * 3) + b)
 			bp := board[p]
 			if bp.val > 0 {
-				numbers[bp.val-1] = true
+				pv := bp.val - 1
+				numbers[pv] = numbers[pv] || p != pos
 			}
 			b += 1
 		}
 		a += 1
 	}
 
+	return numbers
+}
+
+func isConflictingNumber(board *Board, pos int, number int) bool {
+	numbers := getConflictingNumbers(board, pos)
+	return numbers[number-1]
+}
+
+func randomValueForLine(board *Board, pos int) int {
+	numbers := getConflictingNumbers(board, pos)
+
 	// pick one unused random number
 	src := rand.NewSource(time.Now().UnixNano())
 	rnd := rand.New(src)
 
-	i = 0
+	number := -1
+
+	i := 0
 	for i < 9 {
 		j := rnd.Intn(9)
 		if !numbers[j] {
