@@ -328,7 +328,7 @@ func getConflictingNumbers(board *Board, pos int) [9]bool {
 
 	i := 0
 	for i < 9 {
-		xp := x + 1
+		xp := x + i
 		yp := y + (i * 9)
 
 		xv := board[xp].val
