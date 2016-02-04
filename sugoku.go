@@ -166,6 +166,8 @@ func drawBoard(ctx *Ctx) {
 	ctx.renderer.SetDrawColor(0, 0, 0, 0)
 	ctx.renderer.Clear()
 
+	highlightValue := getValueToHighlight(ctx.board)
+
 	i := 0
 	for i < 81 {
 		cell := ctx.board[i]
@@ -197,11 +199,16 @@ func drawBoard(ctx *Ctx) {
 
 		if cell.val != 0 {
 			text = strconv.Itoa(cell.val)
+			isConflict := isConflictingNumber(ctx.board, i, cell.val)
 
 			if !cell.fixed {
-				if isConflictingNumber(ctx.board, i, cell.val) {
+				if isConflict {
 					color = sdl.Color{255, 0, 0, 0}
 				}
+			}
+
+			if !isConflict && (cell.val == highlightValue) {
+				color = sdl.Color{255, 255, 0, 0}
 			}
 		}
 
@@ -393,6 +400,16 @@ func randomValueForLine(board *Board, pos int) int {
 	}
 
 	return number
+}
+
+func getValueToHighlight(board *Board) int {
+	for _, v := range board {
+		if v.mark {
+			return v.val
+		}
+	}
+
+	return -1
 }
 
 func close(ctx *Ctx) {
