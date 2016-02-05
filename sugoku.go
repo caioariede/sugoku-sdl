@@ -8,6 +8,7 @@ import (
 	"os"
 	"strconv"
 	"time"
+	"unicode/utf8"
 )
 
 type Cell struct {
@@ -22,12 +23,14 @@ type Cell struct {
 type Board [81]Cell
 
 type Ctx struct {
-	window     *sdl.Window
-	renderer   *sdl.Renderer
-	board      *Board
-	font       *ttf.Font
-	charWidth  int
-	charHeight int
+	window      *sdl.Window
+	renderer    *sdl.Renderer
+	board       *Board
+	cellSize    int32
+	cellPadding int32
+	font        *ttf.Font
+	charWidth   int
+	charHeight  int
 }
 
 func run() int {
@@ -43,10 +46,16 @@ func run() int {
 			(cellPadding * 2), // extra padding separating squares
 	)
 
-	window := createWindow("Sugoku", winSize, winSize)
+	menuHeight := 30
+
+	window := createWindow("Sugoku", winSize, winSize+menuHeight)
 	renderer := createRenderer(window)
 	board := initBoard(cellSize, startX, startY, cellPadding)
-	ctx := Ctx{window, renderer, &board, font, charWidth, charHeight}
+	ctx := Ctx{
+		window, renderer, &board,
+		cellSize, cellPadding,
+		font, charWidth, charHeight,
+	}
 
 	drawBoard(&ctx)
 
@@ -85,12 +94,19 @@ func initFont() (*ttf.Font, int, int) {
 		panic(err)
 	}
 
-	fW, fH, err := font.SizeUTF8("0")
-	if err != nil {
-		panic(err)
+	tfW := 0
+	tfH := 0
+
+	for _, v := range "0 " {
+		fW, fH, err := font.SizeUTF8(fmt.Sprintf("%c", v))
+		if err != nil {
+			panic(err)
+		}
+		tfW += fW
+		tfH = fH
 	}
 
-	return font, fW, fH
+	return font, tfW / 2, tfH
 }
 
 func createWindow(title string, width int, height int) *sdl.Window {
@@ -229,7 +245,39 @@ func drawBoard(ctx *Ctx) {
 		i += 1
 	}
 
+	drawMenu(ctx)
+
 	ctx.renderer.Present()
+}
+
+func drawMenu(ctx *Ctx) {
+	text := "Move: ↑ ↓ ← →"
+	color := sdl.Color{80, 80, 80, 200}
+	textSurface, err := ctx.font.RenderUTF8_Solid(text, color)
+	if err != nil {
+		panic(err)
+	}
+
+	texture, err := ctx.renderer.CreateTextureFromSurface(textSurface)
+	if err != nil {
+		panic(err)
+	}
+
+	textSurface.Free()
+
+	textWidth := utf8.RuneCountInString(text) * ctx.charWidth
+
+	X := int32(20)
+	Y := int32(20) + (ctx.cellSize * 9) + (ctx.cellPadding * (4 + 4 + 2 + 2))
+	W := int32(textWidth)
+	H := int32(ctx.charHeight)
+
+	innerRect := sdl.Rect{X, Y, W, H}
+
+	ctx.renderer.SetDrawColor(0, 0, 0, 0)
+	ctx.renderer.DrawRect(&innerRect)
+
+	ctx.renderer.Copy(texture, nil, &innerRect)
 }
 
 func clickButton(ctx *Ctx, x int32, y int32) {
